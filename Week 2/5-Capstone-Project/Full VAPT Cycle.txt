@@ -1,0 +1,19 @@
+1. The project implemented a complete VAPT cycle based on the PTES methodology.
+
+2. The target environment included Metasploitable and DVWA web application.
+
+3. Tools used included Kali Linux, sqlmap, Metasploit, Burp Suite, and Nuclei.
+
+4. PTES phases followed: Reconnaissance, Scanning, Exploitation, Post-Exploitation, Reporting.
+
+5. SQL Injection was successfully simulated using sqlmap.
+
+6. Database information and user credentials were extracted from DVWA.
+
+7. Nuclei scan identified vulnerabilities like missing headers, directory listing, outdated Apache.
+
+8. Weak/default credentials increased risk of unauthorized access.
+
+9. Exploitation confirmed risks such as data breach, RCE, and full system takeover.
+
+10. Recommended fixes include input validation, patching systems, removing default credentials, and improving security configurations.
