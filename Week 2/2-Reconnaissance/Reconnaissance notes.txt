@@ -1,0 +1,19 @@
+1. Reconnaissance was performed to gather information about the target domain using OSINT tools.
+
+2. Tools used include Maltego, Shodan, and WHOIS.
+
+3. WHOIS provided domain registration details like registrar and name servers.
+
+4. Wappalyzer identified technologies such as HTTP/2 and Cloudflare CDN.
+
+5. crt.sh revealed certificate details and wildcard subdomains (*.example.com).
+
+6. Wildcard subdomains indicate the presence of multiple hidden or unlisted subdomains.
+
+7. Shodan identified exposed services and devices across multiple countries.
+
+8. Common open ports found were 80 (HTTP) and 443 (HTTPS).
+
+9. Some systems used self-signed certificates and included honeypots.
+
+10. Maltego was used for asset mapping to visualize domain, DNS, and IP relationships.
