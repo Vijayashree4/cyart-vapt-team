@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CyberShield ASM Dashboard Team 5</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/emailjs-browser@4/dist/email.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/3.0.1/jspdf.umd.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+
+  <style>
+    :root{
+      --bg-deepest:#06080d;
+      --bg-deep:#0b0f18;
+      --bg-card:#111827;
+      --bg-card-hover:#1a2332;
+      --border:#1e2a3a;
+      --border-accent:#f59e0b33;
+      --fg:#e8edf5;
+      --fg-muted:#7a8ba8;
+      --accent:#f59e0b;
+      --accent-glow:#f59e0b44;
+      --critical:#ef4444;
+      --critical-glow:#ef444433;
+      --high:#f97316;
+      --high-glow:#f9731633;
+      --medium:#eab308;
+      --medium-glow:#eab30833;
+      --low:#22c55e;
+      --low-glow:#22c55e33;
+      --info:#06b6d4;
+      --t-open:#3b82f6;
+      --t-open-glow:#3b82f633;
+      --t-invest:#eab308;
+      --t-invest-glow:#eab30833;
+      --t-pending:#f97316;
+      --t-pending-glow:#f9731633;
+      --t-resolved:#22c55e;
+      --t-resolved-glow:#22c55e33;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:'Space Grotesk',sans-serif;
+      background:var(--bg-deepest);
+      color:var(--fg);
+      min-height:100vh;
+      overflow-x:hidden;
+    }
+    .font-mono{font-family:'JetBrains Mono',monospace}
+    canvas{width:100%!important;height:100%!important}
+    .dash-card{
+      background:var(--bg-card);
+      border:1px solid var(--border);
+      border-radius:12px;
+      transition:.3s;
+    }
+    .dash-card:hover{
+      border-color:var(--border-accent);
+      box-shadow:0 0 30px var(--accent-glow);
+    }
+    .stat-card{position:relative;overflow:hidden}
+    .stat-card::before{
+      content:'';
+      position:absolute;
+      top:0;left:0;right:0;
+      height:3px;
+      border-radius:12px 12px 0 0;
+    }
+    .stat-card.critical::before{background:var(--critical)}
+    .stat-card.high::before{background:var(--high)}
+    .stat-card.medium::before{background:var(--medium)}
+    .stat-card.accent::before{background:var(--accent)}
+    .stat-card.tickets::before{background:var(--t-open)}
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:3px 10px;
+      border-radius:20px;
+      font-size:.75rem;
+      font-weight:600;
+      text-transform:uppercase;
+      letter-spacing:.04em;
+    }
+    .badge-critical{background:var(--critical-glow);color:var(--critical);border:1px solid #ef444455}
+    .badge-high{background:var(--high-glow);color:var(--high);border:1px solid #f9731655}
+    .badge-medium{background:var(--medium-glow);color:var(--medium);border:1px solid #eab30855}
+    .badge-low{background:var(--low-glow);color:var(--low);border:1px solid #22c55e55}
+    .badge-open{background:var(--t-open-glow);color:var(--t-open);border:1px solid #3b82f655}
+    .badge-investigating{background:var(--t-invest-glow);color:var(--t-invest);border:1px solid #eab30855}
+    .badge-pending{background:var(--t-pending-glow);color:var(--t-pending);border:1px solid #f9731655}
+    .badge-resolved{background:var(--t-resolved-glow);color:var(--t-resolved);border:1px solid #22c55e55}
+    .filter-pill{
+      padding:8px 16px;
+      border-radius:20px;
+      font-size:.8rem;
+      font-weight:600;
+      cursor:pointer;
+      border:1px solid var(--border);
+      background:var(--bg-card);
+      color:var(--fg-muted);
+      transition:.2s;
+    }
+    .filter-pill.active{color:#000;border-color:transparent}
+    .filter-pill:hover{filter:brightness(1.15)}
+    .alert-card{
+      background:var(--bg-card);
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:20px;
+      cursor:pointer;
+      transition:.2s;
+    }
+    .alert-card:hover{
+      border-color:var(--border-accent);
+      box-shadow:0 0 24px var(--accent-glow);
+      transform:translateY(-2px);
+    }
+    .risk-bar-bg{
+      width:100%;
+      height:6px;
+      background:#1a2435;
+      border-radius:3px;
+      overflow:hidden;
+    }
+    .risk-bar-fill{
+      height:100%;
+      border-radius:3px;
+      transition:width 1s ease;
+    }
+    .path-node{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding:6px 14px;
+      border-radius:8px;
+      font-size:.8rem;
+      font-weight:500;
+      white-space:nowrap;
+    }
+    .path-arrow{color:var(--fg-muted);font-size:.75rem;margin:0 4px}
+    .tab-btn{
+      padding:8px 20px;
+      border-radius:8px;
+      font-size:.85rem;
+      font-weight:500;
+      color:var(--fg-muted);
+      background:transparent;
+      border:1px solid transparent;
+      cursor:pointer;
+      transition:.2s;
+    }
+    .tab-btn.active,.tab-btn:hover{
+      color:var(--fg);
+      background:#1a2332;
+    }
+    .search-input{
+      background:var(--bg-deep);
+      border:1px solid var(--border);
+      border-radius:8px;
+      padding:10px 16px 10px 40px;
+      color:var(--fg);
+      font-size:.875rem;
+      width:100%;
+    }
+    .search-input:focus{
+      outline:none;
+      border-color:var(--accent);
+      box-shadow:0 0 0 3px var(--accent-glow);
+    }
+    .toast{
+      position:fixed;
+      bottom:24px;
+      left:50%;
+      transform:translateX(-50%) translateY(120px);
+      opacity:0;
+      z-index:200;
+      padding:14px 24px;
+      border-radius:10px;
+      font-size:.875rem;
+      font-weight:500;
+      transition:.4s;
+      background:var(--bg-card);
+      border:1px solid var(--accent);
+      color:var(--accent);
+    }
+    .toast.show{
+      transform:translateX(-50%) translateY(0);
+      opacity:1;
+    }
+    .pg-view{display:none;min-height:100vh}
+    .pg-view.on{display:block}
+    .det-body{display:flex;flex:1;overflow:hidden;height:calc(100vh - 65px)}
+    .det-sidebar{
+      width:300px;
+      flex-shrink:0;
+      border-right:1px solid var(--border);
+      background:var(--bg-deep);
+      overflow-y:auto;
+      padding:16px;
+    }
+    .det-main{flex:1;overflow-y:auto;padding:32px}
+    .sidebar-item{
+      padding:12px;
+      border-radius:8px;
+      background:var(--bg-card);
+      border:1px solid var(--border);
+      margin-bottom:8px;
+      cursor:pointer;
+    }
+    .sidebar-item.active{
+      border-color:var(--accent);
+      background:#f59e0b11;
+    }
+    .log-card{
+      background:var(--bg-card);
+      border:1px solid var(--border);
+      border-radius:12px;
+      padding:20px;
+    }
+    .retrieve-btn{
+      padding:8px 18px;
+      border-radius:8px;
+      background:var(--low-glow);
+      color:var(--low);
+      border:1px solid var(--low);
+      font-size:.8rem;
+      font-weight:600;
+      cursor:pointer;
+      width:100%;
+    }
+    .popup-overlay{
+      position:fixed;
+      inset:0;
+      background:#000000cc;
+      z-index:200;
+      display:none;
+      align-items:center;
+      justify-content:center;
+      backdrop-filter:blur(4px);
+    }
+    .popup-overlay.active{display:flex}
+    .popup-content{
+      background:var(--bg-card);
+      border:1px solid var(--low);
+      border-radius:16px;
+      max-width:420px;
+      width:90%;
+      padding:32px;
+      text-align:center;
+      box-shadow:0 0 40px var(--low-glow);
+    }
+    @media (max-width:768px){
+      .det-sidebar{display:none}
+    }
+  </style>
+</head>
+<body>
+
+<div class="z1 pg-view on" id="pgDash">
+  <header style="background:#06080dee;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:50;backdrop-filter:blur(12px);">
+    <div style="max-width:1600px;margin:auto;padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#f59e0b,#d97706);display:flex;align-items:center;justify-content:center;">
+          <i class="fas fa-shield-halved text-black"></i>
+        </div>
+        <div>
+          <div style="font-weight:700">CyberShield</div>
+          <div style="font-size:12px;color:var(--fg-muted)">Attack Surface Manager</div>
+        </div>
+      </div>
+      <nav style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+        <button class="tab-btn active" onclick="scrollToSection('sectionOverview', this)">Dashboard</button>
+        <button class="tab-btn" onclick="scrollToSection('sectionAssets', this)">Assets</button>
+        <button class="tab-btn" onclick="scrollToSection('sectionAttack', this)">Attack Paths</button>
+        <button class="tab-btn" onclick="scrollToSection('sectionMonitoring', this)">Monitoring</button>
+        <button class="tab-btn" onclick="openAlertsPage()"><i class="fas fa-triangle-exclamation"></i> Alerts</button>
+        <button class="tab-btn" onclick="toggleNotifyDropdown()"><i class="fas fa-envelope-open-text"></i> Notify</button>
+        <button class="tab-btn" onclick="openExportPage()"><i class="fas fa-file-pdf"></i> Export</button>
+        <button class="tab-btn" onclick="showPage('pgLog')"><i class="fas fa-clipboard-list"></i> Logs</button>
+        <span id="logCount" class="font-mono" style="margin-left:6px;color:var(--critical)">0</span>
+      </nav>
+    </div>
+  </header>
+
+  <main style="max-width:1600px;margin:auto;padding:24px;">
+    <section id="sectionOverview" style="margin-bottom:24px;">
+      <h1 style="font-size:28px;margin:0 0 8px;">Asset Summary Dashboard</h1>
+      <p style="color:var(--fg-muted);margin:0 0 20px;">Real-time attack surface monitoring across 20 discovered assets</p>
+      <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;" class="stat-grid">
+        <div class="dash-card stat-card accent" style="padding:20px;">
+          <div style="color:var(--fg-muted);font-size:12px;text-transform:uppercase;">Total Assets</div>
+          <div id="statAssets" style="font-size:30px;font-weight:700;">20</div>
+        </div>
+        <div class="dash-card stat-card critical" style="padding:20px;">
+          <div style="color:var(--fg-muted);font-size:12px;text-transform:uppercase;">Critical CVEs</div>
+          <div id="statCritical" style="font-size:30px;font-weight:700;color:var(--critical);">0</div>
+        </div>
+        <div class="dash-card stat-card high" style="padding:20px;">
+          <div style="color:var(--fg-muted);font-size:12px;text-transform:uppercase;">High Severity</div>
+          <div id="statHigh" style="font-size:30px;font-weight:700;color:var(--high);">0</div>
+        </div>
+        <div class="dash-card stat-card tickets" style="padding:20px;">
+          <div style="color:var(--fg-muted);font-size:12px;text-transform:uppercase;">Open Tickets</div>
+          <div id="statTickets" style="font-size:30px;font-weight:700;color:var(--t-open);">0</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="sectionCharts" class="main-grid" style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:24px;">
+      <div class="dash-card" style="padding:20px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <h2 style="margin:0;">Risk Score Distribution</h2>
+        </div>
+        <div style="height:320px"><canvas id="riskChart"></canvas></div>
+      </div>
+      <div class="dash-card" style="padding:20px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <h2 style="margin:0;">Severity Breakdown</h2>
+        </div>
+        <div style="height:220px"><canvas id="severityChart"></canvas></div>
+        <div style="margin-top:12px;font-size:12px;color:var(--fg-muted)">
+          <div>Critical <span id="sbCritical" style="float:right;color:var(--critical)"></span></div>
+          <div>High <span id="sbHigh" style="float:right;color:var(--high)"></span></div>
+          <div>Medium <span id="sbMedium" style="float:right;color:var(--medium)"></span></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="sectionAssets" class="dash-card" style="padding:20px;margin-bottom:24px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:12px;">
+        <div>
+          <h2 style="margin:0;">Asset Inventory</h2>
+          <p style="margin:4px 0 0;color:var(--fg-muted);font-size:12px;">Click any row to view full vulnerability details</p>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <div style="position:relative;">
+            <i class="fas fa-search" style="position:absolute;left:14px;top:12px;color:#4a5a70;"></i>
+            <input id="searchInput" class="search-input" placeholder="Search assets, CVEs, IPs..." oninput="filterTable()" style="width:240px;">
+          </div>
+          <select id="severityFilter" onchange="filterTable()" style="background:var(--bg-deep);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--fg);">
+            <option value="all">All Severities</option>
+            <option value="Critical">Critical</option>
+            <option value="High">High</option>
+            <option value="Medium">Medium</option>
+          </select>
+          <select id="statusFilter" onchange="filterTable()" style="background:var(--bg-deep);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--fg);">
+            <option value="all">All Statuses</option>
+            <option value="Open">Open</option>
+            <option value="Investigating">Investigating</option>
+            <option value="Pending Patch">Pending Patch</option>
+            <option value="Resolved">Resolved</option>
+          </select>
+        </div>
+      </div>
+      <div style="overflow-x:auto;max-height:520px;overflow-y:auto;">
+        <table style="width:100%;border-collapse:separate;border-spacing:0;" class="asset-table">
+          <thead>
+            <tr style="background:#0d1321;">
+              <th style="padding:12px 16px;text-align:left;">#</th>
+              <th style="padding:12px 16px;text-align:left;">Test Case</th>
+              <th style="padding:12px 16px;text-align:left;">Asset</th>
+              <th style="padding:12px 16px;text-align:left;">IP</th>
+              <th style="padding:12px 16px;text-align:left;">Service</th>
+              <th style="padding:12px 16px;text-align:left;">Severity</th>
+              <th style="padding:12px 16px;text-align:left;">Ticket Status</th>
+              <th style="padding:12px 16px;text-align:left;">Assignee</th>
+              <th style="padding:12px 16px;text-align:left;">Risk Score</th>
+            </tr>
+          </thead>
+          <tbody id="assetTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="sectionAttack" class="dash-card" style="padding:20px;margin-bottom:24px;">
+      <h2 style="margin:0 0 8px;">Attack Path Visualization</h2>
+      <p style="margin:0 0 16px;color:var(--fg-muted);font-size:12px;">All active attack paths from initial access to objective</p>
+      <div id="attackPathGrid" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;"></div>
+    </section>
+
+    <section id="sectionMonitoring" class="main-grid" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:24px;">
+      <div class="dash-card" style="padding:20px;">
+        <h2 style="margin:0 0 8px;">Monitoring Events</h2>
+        <p style="margin:0 0 14px;color:var(--fg-muted);font-size:12px;">Latest asset change detections</p>
+        <div id="monitoringEvents" style="display:grid;gap:10px;max-height:400px;overflow-y:auto;"></div>
+      </div>
+      <div class="dash-card" style="padding:20px;">
+        <h2 style="margin:0 0 8px;">CVSS Score Trend</h2>
+        <p style="margin:0 0 14px;color:var(--fg-muted);font-size:12px;">Vulnerability severity across all discovered assets</p>
+        <div style="height:260px"><canvas id="cvssTrendChart"></canvas></div>
+      </div>
+      <div class="dash-card" style="padding:20px;">
+        <h2 style="margin:0 0 8px;">Common Exposed Ports</h2>
+        <p style="margin:0 0 14px;color:var(--fg-muted);font-size:12px;">Port frequency across the attack surface</p>
+        <div style="height:260px"><canvas id="portChart"></canvas></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="z1 pg-view pg-det" id="pgDet">
+  <header style="background:#06080dee;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:50;backdrop-filter:blur(12px);">
+    <div style="max-width:1400px;margin:auto;padding:12px 24px;display:flex;align-items:center;justify-content:space-between;">
+      <button class="tab-btn active" onclick="showPage('pgDash')"><i class="fas fa-chevron-left"></i> Back to Dashboard</button>
+      <span style="font-weight:700;color:var(--accent)">Vulnerability Details</span>
+    </div>
+  </header>
+  <div class="det-body">
+    <aside class="det-sidebar">
+      <h3 style="margin-top:0;color:var(--fg-muted)">CATEGORIES</h3>
+      <div id="detCategoryList"></div>
+    </aside>
+    <main class="det-main" id="detMainContent"></main>
+  </div>
+</div>
+
+<div class="z1 pg-view" id="pgAlerts">
+  <header style="background:#06080dee;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:50;backdrop-filter:blur(12px);">
+    <div style="max-width:1400px;margin:auto;padding:12px 24px;">
+      <button class="tab-btn active" onclick="showPage('pgDash')"><i class="fas fa-chevron-left"></i> Back to Dashboard</button>
+    </div>
+  </header>
+  <main style="max-width:1400px;margin:auto;padding:32px 24px;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:24px;">
+      <div>
+        <h1 style="margin:0 0 8px;">All Vulnerability Alerts</h1>
+        <p style="margin:0;color:var(--fg-muted)">Click any alert to view full details and share via email</p>
+      </div>
+    </div>
+    <div id="alertFilterPills" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;"></div>
+    <div id="alertsGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px;"></div>
+    <div id="alertsEmpty" style="display:none;text-align:center;padding:80px 0;color:var(--fg-muted)">
+      <i class="fas fa-circle-check" style="font-size:40px;margin-bottom:16px;"></i>
+      <div>No vulnerabilities match this filter</div>
+    </div>
+  </main>
+</div>
+
+<div class="z1 pg-view" id="pgExport">
+  <header style="background:#06080dee;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:50;backdrop-filter:blur(12px);">
+    <div style="max-width:1400px;margin:auto;padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+      <button class="tab-btn active" onclick="showPage('pgDash')"><i class="fas fa-chevron-left"></i> Back to Dashboard</button>
+      <span style="font-weight:700;color:var(--accent)">Export Vulnerability Report</span>
+    </div>
+  </header>
+  <main style="max-width:1400px;margin:auto;padding:32px 24px;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:24px;">
+      <div>
+        <h1 style="margin:0 0 8px;">Select Vulnerabilities to Export</h1>
+        <p style="margin:0;color:var(--fg-muted)">Choose one or more vulnerabilities, then export them as a PDF report.</p>
+      </div>
+      <button class="tab-btn" onclick="downloadSelectedVulnerabilitiesPdf()"><i class="fas fa-file-pdf"></i> Export PDF</button>
+    </div>
+    <div id="exportEmpty" style="display:none;text-align:center;padding:80px 0;color:var(--fg-muted)">
+      <i class="fas fa-circle-check" style="font-size:40px;margin-bottom:16px;"></i>
+      <div>No vulnerabilities available</div>
+    </div>
+    <div id="exportGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px;"></div>
+  </main>
+</div>
+
+<div class="z1 pg-view" id="pgLog">
+  <header style="background:#06080dee;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:50;backdrop-filter:blur(12px);">
+    <div style="max-width:1200px;margin:auto;padding:12px 24px;">
+      <button class="tab-btn active" onclick="showPage('pgDash')"><i class="fas fa-chevron-left"></i> Back to Dashboard</button>
+    </div>
+  </header>
+  <main style="max-width:1200px;margin:auto;padding:32px 24px;">
+    <h1 style="margin:0 0 8px;">Cleared Test Cases</h1>
+    <p style="margin:0 0 24px;color:var(--fg-muted)">Test cases cleared from the dashboard. Use Retrieve to send them back.</p>
+    <div id="logGrid" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;"></div>
+    <div id="logEmpty" style="display:none;text-align:center;padding:80px 0;color:var(--fg-muted)">
+      <i class="fas fa-clipboard-check" style="font-size:40px;margin-bottom:16px;"></i>
+      <div>No cleared test cases</div>
+    </div>
+  </main>
+</div>
+
+<div id="alertInfoModal" class="popup-overlay">
+  <div class="popup-content" style="max-width:520px;text-align:left;border-color:var(--border-accent);">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">
+      <span id="aimBadgeRow"></span>
+      <button onclick="closeAlertInfoModal()" style="background:none;border:none;color:var(--fg-muted);cursor:pointer;font-size:18px;"><i class="fas fa-xmark"></i></button>
+    </div>
+    <h2 id="aimTitle" style="margin:0 0 14px;"></h2>
+    <div id="aimBody" style="display:grid;gap:8px;font-size:13px;margin-bottom:18px;"></div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="openShareEmailBox()" style="flex:1;padding:10px 16px;border:none;border-radius:8px;background:linear-gradient(135deg,#f59e0b,#d97706);color:#000;font-weight:700;cursor:pointer;">
+        <i class="fas fa-share-nodes"></i> Share via Email
+      </button>
+    </div>
+    <div id="shareEmailBox" style="display:none;margin-top:14px;padding-top:14px;border-top:1px solid var(--border);">
+      <input id="shareEmailInput" type="email" placeholder="Enter recipient email address" class="search-input" style="padding-left:16px;margin-bottom:10px;">
+      <button onclick="sendSingleVulnEmail()" style="width:100%;padding:10px 12px;border:none;border-radius:8px;background:var(--low);color:#000;font-weight:700;cursor:pointer;">
+        <i class="fas fa-paper-plane"></i> Send
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="successPopup" class="popup-overlay">
+  <div class="popup-content">
+    <div style="width:64px;height:64px;border-radius:999px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;background:var(--low-glow);">
+      <i class="fas fa-paper-plane text-2xl" style="color:var(--low)"></i>
+    </div>
+    <h3 style="margin:0 0 8px;">Notification Sent</h3>
+    <p id="successMsg" style="color:var(--fg-muted);margin:0 0 18px;">Done</p>
+    <button onclick="closeSuccessPopup()" style="width:100%;padding:10px 12px;border:none;border-radius:8px;background:var(--low);color:#000;font-weight:700;">Close</button>
+  </div>
+</div>
+
+<div id="alertPopup" class="popup-overlay" style="position:fixed;bottom:24px;right:24px;inset:auto;width:340px;z-index:1000;display:none;background:transparent;align-items:flex-end;justify-content:flex-end;">
+  <div class="dash-card" style="width:340px;overflow:hidden;border-color:var(--critical);">
+    <div style="padding:12px;display:flex;justify-content:space-between;align-items:center;background:#ef444415;border-bottom:1px solid #ef444444;">
+      <span style="color:var(--critical);font-size:12px;font-weight:700;text-transform:uppercase;">Highest Severity Alert</span>
+      <button onclick="dismissPopup()" style="background:none;border:none;color:var(--fg-muted);cursor:pointer;"><i class="fas fa-xmark"></i></button>
+    </div>
+    <div id="alertBody" style="padding:16px;"></div>
+    <div style="display:flex;border-top:1px solid var(--border);">
+      <button id="alertInfoBtn" style="flex:1;padding:10px 12px;background:#06b6d415;color:#06b6d4;border:none;font-weight:700;"><i class="fas fa-info-circle"></i> View Details</button>
+      <button id="alertClearBtn" style="flex:1;padding:10px 12px;background:#ef444415;color:#ef4444;border:none;font-weight:700;"><i class="fas fa-check"></i> Clear</button>
+    </div>
+  </div>
+</div>
+
+<div id="notifDropdown" style="display:none;position:fixed;top:72px;right:16px;width:360px;background:var(--bg-card);border:1px solid var(--border);border-radius:12px;z-index:60;padding:20px;box-shadow:0 10px 30px #000000aa;">
+  <h3 style="margin-top:0;color:var(--accent)">Notify</h3>
+  <p style="font-size:12px;color:var(--fg-muted)">Select vulnerabilities and send via SMTP mail.</p>
+  <div id="notifyList" style="display:grid;gap:8px;max-height:240px;overflow-y:auto;margin-bottom:12px;"></div>
+  <input id="notifyEmail" type="email" placeholder="Enter email address" class="search-input" style="padding-left:16px;margin-bottom:10px;">
+  <button onclick="sendNotification()" style="width:100%;padding:10px 12px;border:none;border-radius:8px;background:linear-gradient(135deg,#f59e0b,#d97706);color:#000;font-weight:700;">Send Vulnerabilities</button>
+</div>
+
+<div id="toast" class="toast"><i class="fas fa-check-circle" style="margin-right:8px;"></i><span id="toastMsg">Action completed</span></div>
+
+<script>
+const allAssets = [
+{id:1,name:"Web Server with Critical Vulnerability",asset:"web.company.com",ip:"192.168.1.10",ports:[80,443],service:"Apache HTTP Server",cve:"CVE-2025-1234",cvss:9.8,severity:"Critical",riskScore:95,event:"Apache Version Changed",eventDetail:"Old 2.4.52 -> New 2.4.58",attackPath:["Internet","Web Server","Database Server"],status:"Open",assignee:"SOC Team"},
+{id:2,name:"Exposed SSH Service",asset:"dev.company.com",ip:"192.168.1.15",ports:[22,8080],service:"OpenSSH",cve:"CVE-2024-6387",cvss:8.1,severity:"High",riskScore:84,event:"Multiple Failed SSH Logins",eventDetail:"Source IPs 45.33.21.10, 45.33.21.11",attackPath:["Internet","SSH Service","Development Network"],status:"Open",assignee:"DevOps"},
+{id:3,name:"Misconfigured Database",asset:"db.company.com",ip:"192.168.1.20",ports:[3306],service:"MySQL",cve:"CVE-2025-2222",cvss:7.5,severity:"High",riskScore:80,event:"Database Configuration Modified",eventDetail:"Remote Access Enabled",attackPath:["Web Server","Database Server"],status:"Investigating",assignee:"DBA Team"},
+{id:4,name:"Firewall Exposure Change",asset:"fw.company.com",ip:"192.168.1.1",ports:[443,8443],service:"Firewall Management",cve:"CVE-2025-3333",cvss:6.8,severity:"Medium",riskScore:68,event:"Firewall Rule Modified",eventDetail:"Port 8443 Exposed",attackPath:["Internet","Firewall Management Interface"],status:"Open",assignee:"Network Team"},
+{id:5,name:"RDP Service Exposure",asset:"windows.company.com",ip:"192.168.1.30",ports:[3389],service:"Remote Desktop",cve:"CVE-2025-4444",cvss:9.0,severity:"Critical",riskScore:92,event:"RDP Service Restarted",eventDetail:"Service restart detected on port 3389",attackPath:["Internet","RDP Service","Internal Network"],status:"Pending Patch",assignee:"IT Support"},
+{id:6,name:"API Gateway Vulnerability",asset:"api.company.com",ip:"192.168.1.40",ports:[443],service:"API Gateway",cve:"CVE-2025-5555",cvss:8.8,severity:"High",riskScore:88,event:"Traffic Spike Detected",eventDetail:"Unusual traffic volume on API endpoints",attackPath:["Internet","API Gateway","Backend Services"],status:"Open",assignee:"DevOps"},
+{id:7,name:"DNS Misconfiguration",asset:"dns.company.com",ip:"192.168.1.50",ports:[53],service:"BIND DNS",cve:"CVE-2025-6666",cvss:6.5,severity:"Medium",riskScore:65,event:"Zone Transfer Configuration Changed",eventDetail:"Unauthorized zone transfer possible",attackPath:["Internet","DNS Server","Internal Host Discovery"],status:"Resolved",assignee:"Network Team"},
+{id:8,name:"Kubernetes Dashboard Exposure",asset:"k8s.company.com",ip:"192.168.1.60",ports:[443,6443],service:"Kubernetes API",cve:"CVE-2025-7777",cvss:8.5,severity:"High",riskScore:85,event:"New Node Joined Cluster",eventDetail:"Unverified node added to Kubernetes cluster",attackPath:["Internet","Kubernetes API","Cluster Nodes"],status:"Open",assignee:"DevOps"},
+{id:9,name:"Email Server Vulnerability",asset:"mail.company.com",ip:"192.168.1.70",ports:[25,587,993],service:"Mail Server",cve:"CVE-2025-8888",cvss:7.2,severity:"High",riskScore:78,event:"Unusual Outbound Email Volume",eventDetail:"Potential data exfiltration via email",attackPath:["Internet","Mail Server","Internal Users"],status:"Open",assignee:"IT Support"},
+{id:10,name:"Domain Controller Exposure",asset:"dc.company.com",ip:"192.168.1.80",ports:[88,389,445],service:"Active Directory",cve:"CVE-2025-9999",cvss:9.9,severity:"Critical",riskScore:98,event:"Administrator Login Outside Normal Hours",eventDetail:"Suspicious admin activity at 03:42 AM",attackPath:["Compromised Workstation","Domain Controller"],status:"Investigating",assignee:"SOC Team"},
+{id:11,name:"VPN Server Exposure",asset:"vpn.company.com",ip:"192.168.1.90",ports:[443,1194],service:"OpenVPN",cve:"CVE-2025-1010",cvss:8.7,severity:"High",riskScore:87,event:"Multiple Failed VPN Login Attempts",eventDetail:"Brute-force attack in progress",attackPath:["Internet","VPN Gateway","Internal Network"],status:"Open",assignee:"Network Team"},
+{id:12,name:"File Server Misconfiguration",asset:"files.company.com",ip:"192.168.1.91",ports:[445],service:"SMB File Server",cve:"CVE-2025-2020",cvss:7.8,severity:"High",riskScore:79,event:"Shared Folder Permissions Modified",eventDetail:"Read-only share changed to read-write",attackPath:["Compromised User","File Server","Sensitive Data"],status:"Open",assignee:"IT Support"},
+{id:13,name:"FTP Server Exposure",asset:"ftp.company.com",ip:"192.168.1.92",ports:[21],service:"FTP",cve:"CVE-2025-3030",cvss:8.4,severity:"High",riskScore:83,event:"Anonymous Login Detected",eventDetail:"Anonymous FTP access enabled on public interface",attackPath:["Internet","FTP Server","Internal Storage"],status:"Pending Patch",assignee:"IT Support"},
+{id:14,name:"Application Server Vulnerability",asset:"app.company.com",ip:"192.168.1.93",ports:[8080,8443],service:"Tomcat",cve:"CVE-2025-4040",cvss:9.1,severity:"Critical",riskScore:93,event:"Application Configuration Updated",eventDetail:"Manager app deployed without auth",attackPath:["Internet","Application Server","Database"],status:"Open",assignee:"DevOps"},
+{id:15,name:"NAS Storage Exposure",asset:"nas.company.com",ip:"192.168.1.94",ports:[445,5000],service:"Network Attached Storage",cve:"CVE-2025-5050",cvss:7.6,severity:"High",riskScore:77,event:"New User Created",eventDetail:"Unexpected admin-level user account created",attackPath:["Internal User","NAS","Confidential Files"],status:"Open",assignee:"IT Support"},
+{id:16,name:"Proxy Server Misconfiguration",asset:"proxy.company.com",ip:"192.168.1.95",ports:[3128],service:"Squid Proxy",cve:"CVE-2025-6060",cvss:6.9,severity:"Medium",riskScore:69,event:"Proxy Access Rules Changed",eventDetail:"Allow-all rule added to ACL",attackPath:["Internet","Proxy Server","Internal Services"],status:"Open",assignee:"Network Team"},
+{id:17,name:"LDAP Server Exposure",asset:"ldap.company.com",ip:"192.168.1.96",ports:[389,636],service:"LDAP",cve:"CVE-2025-7070",cvss:8.9,severity:"High",riskScore:89,event:"Unusual Authentication Requests",eventDetail:"Spike in LDAP bind requests detected",attackPath:["Internet","LDAP Server","Domain Services"],status:"Investigating",assignee:"SOC Team"},
+{id:18,name:"Backup Server Compromise Risk",asset:"backup.company.com",ip:"192.168.1.97",ports:[22,873],service:"Backup Service",cve:"CVE-2025-8080",cvss:7.9,severity:"High",riskScore:81,event:"Backup Configuration Modified",eventDetail:"Encryption disabled for backup jobs",attackPath:["Compromised Host","Backup Server","Recovery Data"],status:"Open",assignee:"DBA Team"},
+{id:19,name:"Cloud Management Console Exposure",asset:"cloud.company.com",ip:"192.168.1.98",ports:[443],service:"Cloud Management Portal",cve:"CVE-2025-9090",cvss:9.3,severity:"Critical",riskScore:94,event:"New Administrator Account Created",eventDetail:"Unauthorized admin account provisioned",attackPath:["Internet","Cloud Console","Cloud Resources"],status:"Open",assignee:"DevOps"},
+{id:20,name:"SIEM Server Targeted",asset:"siem.company.com",ip:"192.168.1.99",ports:[5601,9200],service:"Elasticsearch Kibana",cve:"CVE-2025-10001",cvss:9.5,severity:"Critical",riskScore:96,event:"Unauthorized Access Attempt Detected",eventDetail:"Multiple attempts to access Kibana dashboard",attackPath:["Internet","Kibana","Elasticsearch Cluster"],status:"Pending Patch",assignee:"SOC Team"}
+];
+
+let activeAssets = [...allAssets];
+let clearedAssets = [];
+let currentDetId = null;
+let riskChart = null, severityChart = null, cvssChart = null, portChart = null;
+let currentAlertFilter = 'All';
+let currentAlertId = null;
+let currentCategory = 'Critical';
+
+function sevHex(s){ return s==='Critical'?'#ef4444':s==='High'?'#f97316':s==='Medium'?'#eab308':'#22c55e'; }
+function riskHex(r){ return r>=90?'#ef4444':r>=75?'#f97316':r>=60?'#eab308':'#22c55e'; }
+function statusClass(s){ return s==='Open'?'badge-open':s==='Investigating'?'badge-investigating':s==='Pending Patch'?'badge-pending':'badge-resolved'; }
+
+function showToast(msg){
+  document.getElementById('toastMsg').textContent = msg;
+  const t = document.getElementById('toast');
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+function scrollToSection(id, btn){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  document.getElementById(id).scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function showPage(pageId){
+  document.querySelectorAll('.pg-view').forEach(p=>p.classList.remove('on'));
+  document.getElementById(pageId).classList.add('on');
+  window.scrollTo(0,0);
+  if(pageId==='pgDash') updateDashboard();
+  if(pageId==='pgDet') renderCategorySidebar();
+  if(pageId==='pgAlerts') renderAlertsPage();
+  if(pageId==='pgExport') renderExportPage();
+  if(pageId==='pgLog') renderLogs();
+}
+
+function openExportPage(){ showPage('pgExport'); renderExportPage(); }
+function openAlertsPage(){ currentAlertFilter = 'All'; showPage('pgAlerts'); }
+function toggleNotifyDropdown(){
+  const d = document.getElementById('notifDropdown');
+  d.style.display = d.style.display === 'block' ? 'none' : 'block';
+  renderNotifyList();
+}
+function closeSuccessPopup(){ document.getElementById('successPopup').classList.remove('active'); }
+function dismissPopup(){ document.getElementById('alertPopup').style.display='none'; }
+function closeAlertInfoModal(){ document.getElementById('alertInfoModal').classList.remove('active'); document.getElementById('shareEmailBox').style.display='none'; }
+function openShareEmailBox(){ document.getElementById('shareEmailBox').style.display='block'; }
+
+function renderTable(data){
+  const tbody = document.getElementById('assetTableBody');
+  if(!tbody) return;
+  if(!data.length){
+    tbody.innerHTML = `<tr><td colspan="9" style="padding:20px;text-align:center;color:var(--fg-muted);">No assets match your filters.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = data.map(a=>`
+    <tr onclick="openDetailPage(${a.id})" style="cursor:pointer;border-bottom:1px solid var(--border);">
+      <td style="padding:12px 16px;">${a.id}</td>
+      <td style="padding:12px 16px;">${a.name}</td>
+      <td style="padding:12px 16px;font-family:monospace;color:var(--info);">${a.asset}</td>
+      <td style="padding:12px 16px;font-family:monospace;">${a.ip}</td>
+      <td style="padding:12px 16px;">${a.service}</td>
+      <td style="padding:12px 16px;"><span class="badge badge-${a.severity.toLowerCase()}">${a.severity}</span></td>
+      <td style="padding:12px 16px;"><span class="badge ${statusClass(a.status)}">${a.status}</span></td>
+      <td style="padding:12px 16px;">${a.assignee}</td>
+      <td style="padding:12px 16px;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-family:monospace;font-weight:700;color:${riskHex(a.riskScore)}">${a.riskScore}</span>
+          <div class="risk-bar-bg"><div class="risk-bar-fill" style="width:${a.riskScore}%;background:${riskHex(a.riskScore)}"></div></div>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+function filterTable(){
+  const s = document.getElementById('searchInput').value.toLowerCase();
+  const sev = document.getElementById('severityFilter').value;
+  const st = document.getElementById('statusFilter').value;
+  renderTable(activeAssets.filter(a=>{
+    const m1 = !s || [a.asset,a.ip,a.cve,a.name,a.service].some(v=>String(v).toLowerCase().includes(s));
+    const m2 = sev==='all' || a.severity===sev;
+    const m3 = st==='all' || a.status===st;
+    return m1 && m2 && m3;
+  }));
+}
+
+function renderNotifyList(){
+  const list = document.getElementById('notifyList');
+  const top5 = [...activeAssets].sort((a,b)=>b.riskScore-a.riskScore).slice(0,5);
+  list.innerHTML = top5.map(a=>`
+    <label style="display:flex;gap:10px;align-items:flex-start;padding:10px;background:var(--bg-deep);border:1px solid var(--border);border-radius:8px;">
+      <input type="checkbox" class="notif-cb" value="${a.id}" style="margin-top:3px;">
+      <div style="flex:1">
+        <div style="font-size:12px;font-weight:700">${a.name}</div>
+        <div style="font-size:12px;color:var(--fg-muted)">${a.cve} Risk ${a.riskScore}</div>
+        <div><span class="badge badge-${a.severity.toLowerCase()}" style="font-size:.6rem;padding:2px 6px;">${a.severity}</span></div>
+      </div>
+    </label>
+  `).join('');
+}
+
+function sendNotification(){ showToast('Notification feature ready'); }
+
+function renderAttackPaths(){
+  const grid = document.getElementById('attackPathGrid');
+  grid.innerHTML = activeAssets.map(a=>`
+    <div class="dash-card" style="padding:16px;cursor:pointer;background:var(--bg-deep);border:1px solid var(--border);" onclick="openDetailPage(${a.id})">
+      <div style="display:flex;align-items:center;gap:8px;justify-content:space-between;margin-bottom:8px;">
+        <span class="font-mono" style="color:${sevHex(a.severity)};font-weight:700;">${a.id}</span>
+        <span class="badge badge-${a.severity.toLowerCase()}">${a.severity}</span>
+      </div>
+      <div style="font-size:13px;font-weight:700;margin-bottom:12px;">${a.name}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;">
+        ${a.attackPath.map((n,i)=>`<span style="padding:6px 10px;border-radius:8px;background:${i===0?sevHex(a.severity)+'15':'#1a2332'};border:1px solid ${i===0?sevHex(a.severity)+'55':'#2a3a50'};font-size:12px;">${n}</span>${i<a.attackPath.length-1?'<i class="fas fa-arrow-right path-arrow"></i>':''}`).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderMonitoring(){
+  const c = document.getElementById('monitoringEvents');
+  c.innerHTML = [...activeAssets].sort((a,b)=>b.riskScore-a.riskScore).map(a=>`
+    <div class="dash-card" style="padding:12px;background:var(--bg-deep);border:1px solid var(--border);cursor:pointer;" onclick="openDetailPage(${a.id})">
+      <div style="display:flex;gap:10px;">
+        <div style="width:8px;height:8px;border-radius:50%;background:${sevHex(a.severity)};margin-top:7px;"></div>
+        <div style="flex:1">
+          <div style="display:flex;justify-content:space-between;gap:8px;">
+            <strong style="font-size:13px;">${a.asset}</strong>
+            <span class="badge ${statusClass(a.status)}" style="font-size:10px;padding:1px 6px;">${a.status}</span>
+          </div>
+          <div style="font-size:12px;color:var(--fg-muted)">${a.event}</div>
+          <div style="font-size:12px;color:${sevHex(a.severity)};margin-top:4px;">${a.eventDetail}</div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function buildCharts(){
+  if(typeof Chart === 'undefined') return;
+  if(riskChart) riskChart.destroy();
+  if(severityChart) severityChart.destroy();
+  if(cvssChart) cvssChart.destroy();
+  if(portChart) portChart.destroy();
+
+  const sorted = [...activeAssets].sort((a,b)=>b.riskScore-a.riskScore);
+  riskChart = new Chart(document.getElementById('riskChart'), {
+    type:'bar',
+    data:{
+      labels:sorted.map(a=>a.asset.replace('.company.com','')),
+      datasets:[{
+        label:'Risk Score',
+        data:sorted.map(a=>a.riskScore),
+        backgroundColor:sorted.map(a=>sevHex(a.severity)+'44'),
+        borderColor:sorted.map(a=>sevHex(a.severity)),
+        borderWidth:1,
+        borderRadius:4
+      }]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#7a8ba8'},grid:{color:'#1a2435'}},y:{min:0,max:100,ticks:{color:'#7a8ba8'},grid:{color:'#1a2435'}}}}
+  });
+
+  severityChart = new Chart(document.getElementById('severityChart'), {
+    type:'doughnut',
+    data:{
+      labels:['Critical','High','Medium'],
+      datasets:[{
+        data:[
+          activeAssets.filter(a=>a.severity==='Critical').length,
+          activeAssets.filter(a=>a.severity==='High').length,
+          activeAssets.filter(a=>a.severity==='Medium').length
+        ],
+        backgroundColor:['#ef444466','#f9731666','#eab30866'],
+        borderColor:['#ef4444','#f97316','#eab308'],
+        borderWidth:2
+      }]
+    },
+    options:{responsive:true,maintainAspectRatio:false,cutout:'65%',plugins:{legend:{display:false}}}
+  });
+
+  const cvssSorted = [...activeAssets].sort((a,b)=>b.cvss-a.cvss);
+  cvssChart = new Chart(document.getElementById('cvssTrendChart'), {
+    type:'line',
+    data:{
+      labels:cvssSorted.map(a=>a.cve),
+      datasets:[{
+        label:'CVSS',
+        data:cvssSorted.map(a=>a.cvss),
+        borderColor:'#f59e0b',
+        backgroundColor:'#f59e0b15',
+        fill:true,
+        tension:.4,
+        pointBackgroundColor:cvssSorted.map(a=>sevHex(a.severity)),
+        pointBorderColor:cvssSorted.map(a=>sevHex(a.severity)),
+        pointRadius:4
+      }]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#7a8ba8',maxRotation:45,minRotation:45},grid:{color:'#1a2435'}},y:{min:5,max:10,ticks:{color:'#7a8ba8'},grid:{color:'#1a2435'}}}}
+  });
+
+  const portCount = {};
+  activeAssets.forEach(a=>a.ports.forEach(p=>portCount[p]=(portCount[p]||0)+1));
+  const topPorts = Object.entries(portCount).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  portChart = new Chart(document.getElementById('portChart'), {
+    type:'bar',
+    data:{
+      labels:topPorts.map(x=>x[0]),
+      datasets:[{
+        label:'Occurrences',
+        data:topPorts.map(x=>x[1]),
+        backgroundColor:'#06b6d433',
+        borderColor:'#06b6d4',
+        borderWidth:1,
+        borderRadius:4
+      }]
+    },
+    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#7a8ba8'},grid:{color:'#1a2435'}},y:{ticks:{color:'#7a8ba8'},grid:{display:false}}}}
+  });
+
+  document.getElementById('sbCritical').textContent = activeAssets.filter(a=>a.severity==='Critical').length;
+  document.getElementById('sbHigh').textContent = activeAssets.filter(a=>a.severity==='High').length;
+  document.getElementById('sbMedium').textContent = activeAssets.filter(a=>a.severity==='Medium').length;
+}
+
+function updatePopup(){
+  const popup = document.getElementById('alertPopup');
+  const unresolved = activeAssets.filter(a=>a.status!=='Resolved');
+  if(!unresolved.length){ popup.style.display='none'; return; }
+  const highest = [...unresolved].sort((a,b)=>b.riskScore-a.riskScore)[0];
+  document.getElementById('alertBody').innerHTML = `
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+      <span class="font-mono" style="color:${sevHex(highest.severity)};font-size:12px;font-weight:700;">${highest.id}</span>
+      <span class="badge badge-${highest.severity.toLowerCase()}">${highest.severity}</span>
+      <span class="badge ${statusClass(highest.status)}">${highest.status}</span>
+    </div>
+    <div style="font-weight:700;margin-bottom:4px;">${highest.name}</div>
+    <div style="font-size:12px;color:var(--info);font-family:monospace;">${highest.asset} ${highest.ip}</div>
+    <div style="font-size:12px;margin-top:4px;font-family:monospace;color:${sevHex(highest.severity)};">${highest.cve} CVSS ${highest.cvss}</div>
+  `;
+  document.getElementById('alertInfoBtn').onclick = ()=>openCategoryPage(highest.severity);
+  document.getElementById('alertClearBtn').onclick = ()=>clearAsset(highest.id);
+  popup.style.display = 'flex';
+}
+
+function renderAlertFilters(){
+  const pills = document.getElementById('alertFilterPills');
+  const filters = [
+    {name:'All', color:'var(--accent)'},
+    {name:'Critical', color:'var(--critical)'},
+    {name:'High', color:'var(--high)'},
+    {name:'Medium', color:'var(--medium)'},
+    {name:'Low', color:'var(--low)'}
+  ];
+  pills.innerHTML = filters.map(f=>`<button class="filter-pill ${f.name===currentAlertFilter?'active':''}" style="${f.name===currentAlertFilter?'background:'+f.color:''}" onclick="setAlertFilter('${f.name}')">${f.name}</button>`).join('');
+}
+
+function setAlertFilter(name){ currentAlertFilter = name; renderAlertsPage(); }
+
+function renderAlertsPage(){
+  renderAlertFilters();
+  const grid = document.getElementById('alertsGrid');
+  const empty = document.getElementById('alertsEmpty');
+  const items = currentAlertFilter==='All' ? [...activeAssets] : activeAssets.filter(a=>a.severity===currentAlertFilter);
+  if(!items.length){
+    grid.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  grid.innerHTML = items.sort((a,b)=>b.riskScore-a.riskScore).map(a=>`
+    <div class="alert-card" onclick="openAlertInfoModal(${a.id})">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div style="display:flex;gap:8px;align-items:center;">
+          <span class="font-mono" style="color:${sevHex(a.severity)};font-weight:700;">${a.id}</span>
+          <span class="badge badge-${a.severity.toLowerCase()}">${a.severity}</span>
+        </div>
+        <span style="font-family:monospace;color:${riskHex(a.riskScore)};font-weight:700;">Risk ${a.riskScore}</span>
+      </div>
+      <h3 style="margin:0 0 8px;">${a.name}</h3>
+      <div style="display:grid;gap:6px;margin-bottom:14px;font-size:12px;">
+        <div><i class="fas fa-server" style="color:var(--info);width:14px;"></i> <span style="font-family:monospace;color:var(--info)">${a.asset}</span></div>
+        <div><i class="fas fa-bug" style="color:${sevHex(a.severity)};width:14px;"></i> <span style="font-family:monospace;color:${sevHex(a.severity)}">${a.cve} CVSS ${a.cvss}</span></div>
+        <div><span class="badge ${statusClass(a.status)}">${a.status}</span></div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function openAlertInfoModal(id){
+  currentAlertId = id;
+  const a = activeAssets.find(x=>x.id===id);
+  if(!a) return;
+  document.getElementById('aimBadgeRow').innerHTML = `
+    <span class="font-mono" style="color:${sevHex(a.severity)};font-size:12px;font-weight:700;margin-right:8px;">${a.id}</span>
+    <span class="badge badge-${a.severity.toLowerCase()}" style="margin-right:6px;">${a.severity}</span>
+    <span class="badge ${statusClass(a.status)}">${a.status}</span>
+  `;
+  document.getElementById('aimTitle').textContent = a.name;
+  document.getElementById('aimBody').innerHTML = `
+    <div><i class="fas fa-server" style="color:var(--info);width:16px;"></i> <span style="font-family:monospace;color:var(--info)">${a.asset}</span></div>
+    <div><i class="fas fa-network-wired" style="color:var(--fg-muted);width:16px;"></i> <span style="font-family:monospace;">${a.ip}</span></div>
+    <div><i class="fas fa-bug" style="color:${sevHex(a.severity)};width:16px;"></i> <span style="font-family:monospace;color:${sevHex(a.severity)}">${a.cve} CVSS ${a.cvss}</span></div>
+    <div><i class="fas fa-chart-line" style="color:${riskHex(a.riskScore)};width:16px;"></i> Risk Score <span style="color:${riskHex(a.riskScore)};font-weight:700;">${a.riskScore}</span></div>
+    <div><i class="fas fa-bell" style="color:var(--fg-muted);width:16px;"></i> ${a.event}</div>
+    <div><i class="fas fa-circle-info" style="color:var(--fg-muted);width:16px;"></i> ${a.eventDetail}</div>
+    <div><i class="fas fa-user" style="color:var(--fg-muted);width:16px;"></i> Assignee ${a.assignee}</div>
+  `;
+  document.getElementById('shareEmailBox').style.display='none';
+  document.getElementById('alertInfoModal').classList.add('active');
+}
+
+function sendSingleVulnEmail(){
+  showToast('Email feature configured in the dashboard.');
+}
+
+function clearAsset(id){
+  const idx = activeAssets.findIndex(a=>a.id===id);
+  if(idx === -1) return;
+  const cleared = activeAssets.splice(idx,1)[0];
+  cleared.status = 'Resolved';
+  clearedAssets.unshift(cleared);
+  updateDashboard();
+  renderLogs();
+  updatePopup();
+  showToast(cleared.name + ' cleared successfully');
+}
+
+function retrieveAsset(id){
+  const idx = clearedAssets.findIndex(a=>a.id===id);
+  if(idx === -1) return;
+  const restored = clearedAssets.splice(idx,1)[0];
+  restored.status = 'Open';
+  activeAssets.push(restored);
+  updateDashboard();
+  renderLogs();
+  updatePopup();
+  showToast(restored.name + ' data retrieved successfully');
+  showPage('pgDash');
+}
+
+function renderLogs(){
+  const grid = document.getElementById('logGrid');
+  const empty = document.getElementById('logEmpty');
+  document.getElementById('logCount').textContent = clearedAssets.length;
+  if(!clearedAssets.length){
+    grid.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  grid.innerHTML = clearedAssets.map(a=>`
+    <div class="log-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div style="display:flex;gap:8px;align-items:center;">
+          <span class="font-mono" style="color:${sevHex(a.severity)};font-weight:700;">${a.id}</span>
+          <span class="badge badge-${a.severity.toLowerCase()}">${a.severity}</span>
+        </div>
+        <span style="font-family:monospace;color:${riskHex(a.riskScore)};font-weight:700;">Risk ${a.riskScore}</span>
+      </div>
+      <h3 style="margin:0 0 8px;">${a.name}</h3>
+      <div style="display:grid;gap:6px;margin-bottom:14px;font-size:12px;">
+        <div><i class="fas fa-server" style="color:var(--info);width:14px;"></i> <span style="font-family:monospace;color:var(--info)">${a.asset}</span></div>
+        <div><i class="fas fa-network-wired" style="color:var(--fg-muted);width:14px;"></i> <span style="font-family:monospace;">${a.ip}</span></div>
+        <div><i class="fas fa-bug" style="color:${sevHex(a.severity)};width:14px;"></i> <span style="font-family:monospace;color:${sevHex(a.severity)}">${a.cve} CVSS ${a.cvss}</span></div>
+        <div><i class="fas fa-bell" style="color:var(--fg-muted);width:14px;"></i> ${a.event}</div>
+      </div>
+      <div style="margin-bottom:14px;">
+        <div style="font-size:12px;color:var(--fg-muted);margin-bottom:6px;">Risk</div>
+        <div class="risk-bar-bg"><div class="risk-bar-fill" style="width:${a.riskScore}%;background:${riskHex(a.riskScore)}"></div></div>
+      </div>
+      <button class="retrieve-btn" onclick="retrieveAsset(${a.id})"><i class="fas fa-rotate-left"></i> Retrieve to Dashboard</button>
+    </div>
+  `).join('');
+}
+
+function renderExportPage(){
+  const grid = document.getElementById('exportGrid');
+  const empty = document.getElementById('exportEmpty');
+  if(!grid) return;
+  if(!activeAssets.length){
+    empty.style.display='block';
+    grid.innerHTML='';
+    return;
+  }
+  empty.style.display='none';
+  grid.innerHTML = activeAssets.map(a=>`
+    <label class="alert-card" style="display:block;">
+      <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;">
+        <input type="checkbox" class="export-cb" value="${a.id}" style="margin-top:4px;">
+        <div style="flex:1;">
+          <div style="display:flex;justify-content:space-between;gap:8px;align-items:center;">
+            <span class="font-mono" style="color:${sevHex(a.severity)};font-weight:700;">${a.id}</span>
+            <span class="badge badge-${a.severity.toLowerCase()}">${a.severity}</span>
+          </div>
+          <h3 style="margin:8px 0 8px;">${a.name}</h3>
+          <div style="font-size:12px;color:var(--fg-muted);display:grid;gap:4px;">
+            <div>${a.asset} • ${a.ip}</div>
+            <div>${a.cve} • CVSS ${a.cvss}</div>
+            <div>Risk Score ${a.riskScore} • ${a.status}</div>
+          </div>
+        </div>
+      </div>
+    </label>
+  `).join('');
+}
+
+function downloadSelectedVulnerabilitiesPdf(){
+  const checked = [...document.querySelectorAll('.export-cb:checked')];
+  if(!checked.length){
+    showToast('Atleast one vulnerability should be selected');
+    return;
+  }
+  const selected = checked.map(cb=>activeAssets.find(a=>a.id===Number(cb.value))).filter(Boolean);
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+
+  doc.setFontSize(16);
+  doc.text('Selected Vulnerability Report', 14, 16);
+  doc.setFontSize(10);
+  doc.text(`Total selected: ${selected.length}`, 14, 24);
+
+  let y = 34;
+  selected.forEach((a, idx) => {
+    if(y > 270){
+      doc.addPage();
+      y = 16;
+    }
+    doc.setFontSize(12);
+    doc.text(`${idx + 1}. ${a.name}`, 14, y);
+    y += 7;
+    doc.setFontSize(9);
+    const lines = [
+      `ID: ${a.id}`,
+      `Asset: ${a.asset}`,
+      `IP: ${a.ip}`,
+      `Service: ${a.service}`,
+      `CVE: ${a.cve}`,
+      `CVSS: ${a.cvss}`,
+      `Severity: ${a.severity}`,
+      `Status: ${a.status}`,
+      `Assignee: ${a.assignee}`,
+      `Risk Score: ${a.riskScore}`
+    ];
+    lines.forEach(line => {
+      doc.text(line, 16, y);
+      y += 5;
+    });
+    y += 4;
+  });
+
+  doc.save('vulnerability-report.pdf');
+}
+
+function openDetailPage(id){
+  currentDetId = id;
+  const a = activeAssets.find(x=>x.id===id) || clearedAssets.find(x=>x.id===id);
+  if(!a) return;
+  currentCategory = a.severity;
+  showPage('pgDet');
+  renderCategorySidebar();
+  renderCategoryMain(currentCategory);
+}
+
+function openCategoryPage(category){
+  currentCategory = category;
+  showPage('pgDet');
+  renderCategorySidebar();
+  renderCategoryMain(category);
+}
+
+function renderCategorySidebar(){
+  const s = document.getElementById('detCategoryList');
+  const categories = [
+    {name:'Critical', color:'var(--critical)'},
+    {name:'High', color:'var(--high)'},
+    {name:'Medium', color:'var(--medium)'},
+    {name:'Low', color:'var(--low)'}
+  ];
+  s.innerHTML = categories.map(c=>{
+    const count = activeAssets.filter(a=>a.severity===c.name).length;
+    return `<div class="sidebar-item ${c.name===currentCategory?'active':''}" onclick="renderCategoryMain('${c.name}')" style="display:flex;justify-content:space-between;align-items:center;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:10px;height:10px;border-radius:50%;background:${c.color}"></div>
+        <span style="font-weight:700;font-size:14px;">${c.name}</span>
+      </div>
+      <span class="font-mono" style="font-size:12px;color:${c.color};font-weight:700;">${count}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderCategoryMain(category){
+  currentCategory = category;
+  renderCategorySidebar();
+  const items = activeAssets.filter(a=>a.severity===category).sort((a,b)=>b.riskScore-a.riskScore);
+  const main = document.getElementById('detMainContent');
+  if(!items.length){
+    main.innerHTML = `<div style="text-align:center;padding:80px 0;color:var(--fg-muted)"><i class="fas fa-circle-check" style="font-size:40px;margin-bottom:16px;"></i><div>No category severity vulnerabilities</div></div>`;
+    return;
+  }
+  main.innerHTML = `
+    <div style="margin-bottom:20px;">
+      <h1 style="margin:0 0 4px;">${category} Severity Vulnerabilities</h1>
+      <p style="color:var(--fg-muted);margin:0;">${items.length} ${category.toLowerCase()} severity issue(s) found across the attack surface</p>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px;">
+      ${items.map(a=>`
+        <div class="log-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <div style="display:flex;gap:8px;align-items:center;">
+              <span class="font-mono" style="color:${sevHex(a.severity)};font-weight:700;">${a.id}</span>
+              <span class="badge badge-${a.severity.toLowerCase()}">${a.severity}</span>
+            </div>
+            <span style="font-family:monospace;color:${riskHex(a.riskScore)};font-weight:700;">Risk ${a.riskScore}</span>
+          </div>
+          <h3 style="margin:0 0 8px;">${a.name}</h3>
+          <div style="display:grid;gap:6px;margin-bottom:14px;font-size:12px;">
+            <div><i class="fas fa-server" style="color:var(--info);width:14px;"></i> <span style="font-family:monospace;color:var(--info)">${a.asset}</span></div>
+            <div><i class="fas fa-network-wired" style="color:var(--fg-muted);width:14px;"></i> <span style="font-family:monospace;">${a.ip}</span></div>
+            <div><i class="fas fa-bug" style="color:${sevHex(a.severity)};width:14px;"></i> <span style="font-family:monospace;color:${sevHex(a.severity)}">${a.cve} CVSS ${a.cvss}</span></div>
+            <div><i class="fas fa-bell" style="color:var(--fg-muted);width:14px;"></i> ${a.event}</div>
+            <div><i class="fas fa-circle-info" style="color:var(--fg-muted);width:14px;"></i> ${a.eventDetail}</div>
+            <div><i class="fas fa-user" style="color:var(--fg-muted);width:14px;"></i> Assignee ${a.assignee}</div>
+          </div>
+          <button class="tab-btn" style="background:var(--accent);color:#000;width:100%;font-weight:700;" onclick="openAlertInfoModal(${a.id})">View Details</button>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function updateDashboard(){
+  document.getElementById('statAssets').textContent = activeAssets.length;
+  document.getElementById('statCritical').textContent = activeAssets.filter(a=>a.severity==='Critical').length;
+  document.getElementById('statHigh').textContent = activeAssets.filter(a=>a.severity==='High').length;
+  document.getElementById('statTickets').textContent = activeAssets.filter(a=>a.status==='Open').length;
+  renderTable(activeAssets);
+  renderAttackPaths();
+  renderMonitoring();
+  buildCharts();
+  updatePopup();
+  renderNotifyList();
+  document.getElementById('logCount').textContent = clearedAssets.length;
+}
+
+document.addEventListener('DOMContentLoaded', ()=>{
+  updateDashboard();
+  showPage('pgDash');
+});
+</script>
+</body>
+</html>
